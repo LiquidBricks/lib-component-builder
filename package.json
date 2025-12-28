@@ -1,0 +1,20 @@
+{
+  "name": "@liquid-bricks/lib-component-builder",
+  "version": "1.0.0",
+  "description": "Composable component builder with registration, hashing, and helpers.",
+  "type": "module",
+  "main": "./componentBuilder/index.js",
+  "exports": {
+    ".": "./componentBuilder/index.js",
+    "./component/builder": "./componentBuilder/index.js",
+    "./component/builder/helper": "./componentBuilder/help.js"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "test": "node test/run.js"
+  },
+  "dependencies": {
+    "@liquid-bricks/lib-diagnostics": "github:LiquidBricks/lib-diagnostics#cef4c2fe2e2793d49b7e189ce7e25c41c8e6090a"
+  },
+  "license": "ISC"
+}
