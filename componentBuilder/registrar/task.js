@@ -4,12 +4,13 @@ import { checkTaskDefinition, ensureNew, normalizeNames } from "../validation.js
 
 export function makeTaskRegistrar(monad) {
   return function task(name, definition) {
-    const { deps, fnc, inject } = checkTaskDefinition(definition);
+    const { deps, waitFor, fnc, inject } = checkTaskDefinition(definition);
     const [n] = normalizeNames(name, 'task');
     ensureNew([n], monad[s.INTERNALS].nodes.tasks, 'task');
 
     monad[s.INTERNALS].nodes.tasks.set(n, {
       deps: captureDepsAccesses(deps),
+      waitFor: captureDepsAccesses(waitFor),
       inject: captureDepsAccesses(inject),
       fnc,
       codeRef: getCodeLocation(3)

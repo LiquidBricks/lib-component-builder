@@ -43,6 +43,20 @@ test('import registration', async (t) => {
     assert.equal(imported.hash, externalReg.hash)
   })
 
+  await t.test('uses latest hash after imported component changes', () => {
+    const external = component('external-lib')
+    const consumer = component('consumer').import('shared', { hash: external })
+
+    external.task('late', { fnc: () => 1 })
+
+    const externalReg = asRegistration(external)
+    const consumerReg = asRegistration(consumer)
+    const imported = findNodeByName(consumerReg, 'imports', 'shared')
+
+    assert(imported, 'expected import "shared" to be registered')
+    assert.equal(imported.hash, externalReg.hash)
+  })
+
   await t.test('stores hash and codeRef for imported component', () => {
     const comp = component('consumer').import('shared', { hash: 'abc123' })
     const registration = asRegistration(comp)
@@ -51,6 +65,7 @@ test('import registration', async (t) => {
     assert(imported, 'expected import "shared" to be registered')
     assert.equal(imported.hash, 'abc123')
     assert.deepEqual(imported.inject, {})
+    assert.deepEqual(imported.waitFor, [])
     assert.equal(path.resolve(imported.codeRef.file), path.resolve(thisTestFile))
     assert.equal(typeof imported.codeRef.line, 'number')
     assert.equal(typeof imported.codeRef.column, 'number')
@@ -74,6 +89,18 @@ test('import registration', async (t) => {
     })
   })
 
+  await t.test('captures waitFor dependency paths for imports', () => {
+    const comp = component('consumer')
+      .import('words', {
+        hash: 'abc123',
+        waitFor: _ => [_.task.done, _.data.ready],
+      })
+    const registration = asRegistration(comp)
+    const imported = findNodeByName(registration, 'imports', 'words')
+
+    assert.deepEqual(imported.waitFor.sort(), ['data.ready', 'task.done'])
+  })
+
   await t.test('registration snapshot (imports empty)', () => {
     const comp = component('imports-empty')
     const registration = sanitizeRegistration(asRegistration(comp))
@@ -81,9 +108,9 @@ test('import registration', async (t) => {
       name: 'imports-empty',
       hash: registration.hash,
       imports: [],
+      gates: [],
       data: [],
       tasks: [],
-      services: { provide: [], require: [] },
     }
     assert.deepEqual(registration, expected)
   })
@@ -103,12 +130,13 @@ test('import registration', async (t) => {
           name: 'shared',
           hash: 'abc123',
           inject: { 'beta.task.b': ['alpha.data.a'] },
+          waitFor: [],
           codeRef: codeRefFor('shared'),
         },
       ],
+      gates: [],
       data: [],
       tasks: [],
-      services: { provide: [], require: [] },
     }
     assert.deepEqual(registration, expected)
   })

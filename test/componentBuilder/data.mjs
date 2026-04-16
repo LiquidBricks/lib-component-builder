@@ -77,9 +77,9 @@ test('data registration', async (t) => {
       name: 'data-empty',
       hash: registration.hash,
       imports: [],
+      gates: [],
       data: [],
       tasks: [],
-      services: { provide: [], require: [] },
     }
     assert.deepEqual(registration, expected)
   })
@@ -101,10 +101,12 @@ test('data registration', async (t) => {
       name: 'data-full',
       hash: registration.hash,
       imports: [],
+      gates: [],
       data: [
         {
           name: 'seed',
           deps: ['deferred.ready'],
+          waitFor: [],
           inject: ['words.deferred.ready'],
           fnc: undefined,
           codeRef: codeRefFor('seed'),
@@ -112,13 +114,13 @@ test('data registration', async (t) => {
         {
           name: 'value',
           deps: ['data.seed'],
+          waitFor: [],
           inject: ['words.data.seed'],
           fnc: String(valueFn),
           codeRef: codeRefFor('value'),
         },
       ],
       tasks: [],
-      services: { provide: [], require: [] },
     }
     assert.deepEqual(registration, expected)
   })

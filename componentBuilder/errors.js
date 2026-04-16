@@ -12,6 +12,4 @@ export const ERRORS = {
   deferredDepsNoFunction: 'Data depending on deferred may not provide a fnc',
   importHashMustBeString: 'Import hash must be a non-empty string',
   injectMustBeFunction: 'inject must be a function',
-  serviceFacadeMustSpecifyMethod: 'Use service.provide(name, definition) or service.require(name)',
-  serviceRequireNameOnly: 'service.require only accepts a service name (no options object)',
 };

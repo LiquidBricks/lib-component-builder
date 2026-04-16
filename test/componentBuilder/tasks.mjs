@@ -65,6 +65,23 @@ test('task registration and dependency capture', async (t) => {
     }
   })
 
+  await t.test('captures waitFor dependencies for tasks', () => {
+    const comp = component('waiters')
+      .task('first', { fnc: () => 1 })
+      .task('second', {
+        waitFor: ({ task: { first } }) => first,
+        deps: ({ data: { optional } }) => optional,
+        fnc: () => 2,
+      })
+
+    const registration = asRegistration(comp)
+    const firstTask = registration.tasks.find(t => t.name === 'first')
+    const secondTask = registration.tasks.find(t => t.name === 'second')
+
+    assert.deepEqual(firstTask.waitFor, [])
+    assert.deepEqual(secondTask.waitFor, ['task.first'])
+  })
+
   await t.test('registration snapshot (tasks empty)', () => {
     const comp = component('tasks-empty')
     const registration = sanitizeRegistration(asRegistration(comp))
@@ -72,9 +89,9 @@ test('task registration and dependency capture', async (t) => {
       name: 'tasks-empty',
       hash: registration.hash,
       imports: [],
+      gates: [],
       data: [],
       tasks: [],
-      services: { provide: [], require: [] },
     }
     assert.deepEqual(registration, expected)
   })
@@ -100,10 +117,12 @@ test('task registration and dependency capture', async (t) => {
       name: 'tasks-full',
       hash: registration.hash,
       imports: [],
+      gates: [],
       data: [
         {
           name: 'seed',
           deps: [],
+          waitFor: [],
           inject: [],
           fnc: String(seedFn),
           codeRef: dataCodeRef,
@@ -113,6 +132,7 @@ test('task registration and dependency capture', async (t) => {
         {
           name: 'double',
           deps: ['data.seed'],
+          waitFor: [],
           inject: ['words.data.seed'],
           fnc: String(doubleFn),
           codeRef: codeRefFor('double'),
@@ -120,12 +140,12 @@ test('task registration and dependency capture', async (t) => {
         {
           name: 'summary',
           deps: ['task.double'],
+          waitFor: [],
           inject: ['words.task.double'],
           fnc: String(summaryFn),
           codeRef: codeRefFor('summary'),
         },
       ],
-      services: { provide: [], require: [] },
     }
     assert.deepEqual(registration, expected)
   })

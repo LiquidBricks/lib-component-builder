@@ -1,12 +1,12 @@
 import assert from "node:assert";
 import { getCodeLocation, s } from "./help.js";
-import { buildRegistration } from "./registration.js";
+import { buildRegistration, deserializeRegistration } from "./registration.js";
 import { computeComponentHash } from "./hash.js";
 import { ERRORS } from "./errors.js";
 import { makeDataRegistrar } from "./registrar/data.js";
 import { makeImportRegistrar } from "./registrar/import.js";
+import { makeGateRegistrar } from "./registrar/gate.js";
 import { makeTaskRegistrar } from "./registrar/task.js";
-import { makeServiceRegistrar } from "./registrar/service.js";
 import { makeExplain } from "./explain.js";
 
 export function component(name = 'component') {
@@ -22,10 +22,7 @@ export function component(name = 'component') {
         data: new Map(),
         tasks: new Map(),
         imports: new Map(),
-        services: {
-          provide: new Map(),
-          require: new Set(),
-        },
+        gates: new Map(),
       },
       debugInfo: (({
         file, line, column, functionName
@@ -52,10 +49,13 @@ export function component(name = 'component') {
   monad.data = makeDataRegistrar(monad);
   monad.task = makeTaskRegistrar(monad);
   monad.import = makeImportRegistrar(monad);
-  monad.service = makeServiceRegistrar(monad);
+  monad.gate = makeGateRegistrar(monad);
   monad.explain = makeExplain(monad);
   monad.toJSON = () => monad[s.INTERNALS].registration();
 
   monad[s.INTERNALS].init()
   return monad
 }
+
+component.fromJSON = deserializeRegistration;
+export { deserializeRegistration };

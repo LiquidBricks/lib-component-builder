@@ -5,48 +5,53 @@ export function computeComponentHash(name, nodes = {}) {
   const data = normalizeNodeDefinitions(nodes.data);
   const tasks = normalizeNodeDefinitions(nodes.tasks);
   const imports = normalizeImportDefinitions(nodes.imports);
-  const services = normalizeServiceDefinitions(nodes.services);
+  const gates = normalizeGateDefinitions(nodes.gates);
 
   const descriptor = {
     name,
     imports,
+    gates,
     data,
     tasks,
-    services,
   };
   const json = JSON.stringify(descriptor);
   return createHash('sha256').update(json).digest('hex');
 }
 
-function normalizeImportDefinitions(importMap = new Map()) {
-  return Array.from(importMap.entries())
-    .map(([name, { hash, inject }]) => ({
+function normalizeGateDefinitions(gateMap = new Map()) {
+  return Array.from(gateMap.entries())
+    .map(([name, { hash, inject, waitFor, deps, fnc }]) => ({
       name,
       hash: normalizeImportHash(hash),
       inject: normalizeImportInject(inject),
+      waitFor: normalizeWaitFor(waitFor),
+      deps: normalizeWaitFor(deps),
+      fnc: String(fnc ?? '').trim(),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function normalizeImportDefinitions(importMap = new Map()) {
+  return Array.from(importMap.entries())
+    .map(([name, { hash, inject, waitFor }]) => ({
+      name,
+      hash: normalizeImportHash(hash),
+      inject: normalizeImportInject(inject),
+      waitFor: normalizeWaitFor(waitFor),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function normalizeNodeDefinitions(nodeMap = new Map()) {
   return Array.from(nodeMap.entries())
-    .map(([nodeName, { deps, inject, fnc }]) => ({
+    .map(([nodeName, { deps, waitFor, inject, fnc }]) => ({
       name: nodeName,
       deps: [...(deps ?? [])].sort(),
+      waitFor: [...(waitFor ?? [])].sort(),
       inject: [...(inject ?? [])].sort(),
       fnc: String(fnc).trim(),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
-}
-
-function normalizeServiceDefinitions(services = { provide: new Map(), require: new Set() }) {
-  const provide = normalizeNodeDefinitions(services.provide);
-  const require = normalizeRequireDefinitions(services.require);
-  return { provide, require };
-}
-
-function normalizeRequireDefinitions(requireSet = new Set()) {
-  return Array.from(requireSet ?? []).map(String).sort();
 }
 
 function normalizeImportInject(inject) {
@@ -80,4 +85,12 @@ function normalizeImportHash(hash) {
     return typeof componentHash === 'string' ? componentHash.trim() : '';
   }
   return String(hash).trim();
+}
+
+function normalizeWaitFor(waitFor) {
+  if (waitFor === undefined || waitFor === null) return [];
+  if (Array.isArray(waitFor) || waitFor instanceof Set) {
+    return Array.from(new Set(Array.from(waitFor).map(String))).sort();
+  }
+  return [String(waitFor)].sort();
 }

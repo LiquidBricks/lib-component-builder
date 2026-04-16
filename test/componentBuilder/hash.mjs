@@ -32,6 +32,19 @@ test('hashing', async (t) => {
     assert.notEqual(regA.hash, regB.hash)
   })
 
+  await t.test('changes hash when import-level waitFor differs', () => {
+    const withWait = component('consumer').import('shared', {
+      hash: 'aaaa',
+      waitFor: _ => [_.task.ready],
+    })
+    const withoutWait = component('consumer').import('shared', { hash: 'aaaa' })
+
+    const regA = asRegistration(withWait)
+    const regB = asRegistration(withoutWait)
+
+    assert.notEqual(regA.hash, regB.hash)
+  })
+
   await t.test('uses component hash when import hash is provided as a component instance', () => {
     const external = component('shared-lib').data('value', { fnc: () => 1 })
     const externalHash = asRegistration(external).hash
@@ -78,24 +91,27 @@ test('hashing', async (t) => {
     assert.equal(registrationA.hash, registrationB.hash)
   })
 
-  await t.test('changes hash when services differ', () => {
-    const withOne = component('consumer')
-      .service.provide('api', { fnc: () => 1 })
-    const withTwo = component('consumer')
-      .service.provide('api', { fnc: () => 2 })
+  await t.test('changes hash when task-level waitFor differs', () => {
+    const withWait = component('calc')
+      .task('first', { fnc: () => 1 })
+      .task('second', { waitFor: _ => [_.task.first], fnc: () => 2 })
 
-    const regA = asRegistration(withOne)
-    const regB = asRegistration(withTwo)
+    const withoutWait = component('calc')
+      .task('first', { fnc: () => 1 })
+      .task('second', { fnc: () => 2 })
+
+    const regA = asRegistration(withWait)
+    const regB = asRegistration(withoutWait)
 
     assert.notEqual(regA.hash, regB.hash)
   })
 
-  await t.test('changes hash when required services differ', () => {
-    const withA = component('consumer').service.require('db')
-    const withB = component('consumer').service.require('cache')
+  await t.test('changes hash when gates differ', () => {
+    const withGate = component('consumer').gate('setup', { hash: 'aaaa', fnc: () => true })
+    const withoutGate = component('consumer')
 
-    const regA = asRegistration(withA)
-    const regB = asRegistration(withB)
+    const regA = asRegistration(withGate)
+    const regB = asRegistration(withoutGate)
 
     assert.notEqual(regA.hash, regB.hash)
   })
