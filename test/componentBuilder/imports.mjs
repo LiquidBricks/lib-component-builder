@@ -101,6 +101,21 @@ test('import registration', async (t) => {
     assert.deepEqual(imported.waitFor.sort(), ['data.ready', 'task.done'])
   })
 
+  await t.test('captures lifecycle.done waitFor paths for sibling imports', () => {
+    const comp = component('consumer')
+      .import('controlplanepod', { hash: 'control-plane-hash' })
+      .import('corednsStart', {
+        hash: 'coredns-start-hash',
+        waitFor: _ => [_.controlplanepod.lifecycle.done],
+      })
+
+    const registration = asRegistration(comp)
+    const imported = findNodeByName(registration, 'imports', 'corednsStart')
+
+    assert(imported, 'expected import "corednsStart" to be registered')
+    assert.deepEqual(imported.waitFor, ['controlplanepod.lifecycle.done'])
+  })
+
   await t.test('registration snapshot (imports empty)', () => {
     const comp = component('imports-empty')
     const registration = sanitizeRegistration(asRegistration(comp))
