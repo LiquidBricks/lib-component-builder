@@ -6,6 +6,7 @@ export function computeComponentHash(name, nodes = {}) {
   const tasks = normalizeNodeDefinitions(nodes.tasks);
   const imports = normalizeImportDefinitions(nodes.imports);
   const gates = normalizeGateDefinitions(nodes.gates);
+  const agentFns = normalizeAgentFnDefinitions(nodes.agentFns);
 
   const descriptor = {
     name,
@@ -14,8 +15,28 @@ export function computeComponentHash(name, nodes = {}) {
     data,
     tasks,
   };
+  if (agentFns.length > 0) {
+    descriptor.agentFns = agentFns;
+  }
   const json = JSON.stringify(descriptor);
   return createHash('sha256').update(json).digest('hex');
+}
+
+export function computeAgentFnHash(portAddr, fn) {
+  const descriptor = {
+    portAddr: String(portAddr ?? '').trim(),
+    fn: String(fn ?? '').trim(),
+  };
+  return createHash('sha256').update(JSON.stringify(descriptor)).digest('hex');
+}
+
+function normalizeAgentFnDefinitions(agentFnMap = new Map()) {
+  return Array.from(agentFnMap.entries())
+    .map(([name, { portAddr }]) => ({
+      name,
+      portAddr: String(portAddr ?? '').trim(),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function normalizeGateDefinitions(gateMap = new Map()) {

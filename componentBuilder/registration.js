@@ -2,19 +2,42 @@ import assert from "node:assert";
 import { normalizeImportHash } from "./validation.js";
 
 export function buildRegistration({ name, nodes, hash }) {
+  const agentFnNodes = serializeAgentFns(nodes.agentFns);
   const importNodes = serializeImports(nodes.imports);
   const gateNodes = serializeGates(nodes.gates);
   const dataNodes = serializeNodes(nodes.data);
   const taskNodes = serializeNodes(nodes.tasks);
 
-  return {
+  const registration = {
     name,
     hash,
+  };
+  if (agentFnNodes.length > 0) {
+    registration.agentFns = agentFnNodes;
+  }
+
+  return {
+    ...registration,
     imports: importNodes,
     gates: gateNodes,
     data: dataNodes,
     tasks: taskNodes,
   }
+}
+
+function serializeAgentFns(map = new Map()) {
+  return Array.from(map.entries())
+    .map(([n, { portAddr, hash, codeRef }]) => {
+      const item = {
+        name: n,
+        portAddr: requireString(portAddr, `agentFn ${n}.portAddr`),
+        codeRef,
+      };
+      if (hash !== undefined) {
+        item.hash = requireString(hash, `agentFn ${n}.hash`);
+      }
+      return item;
+    });
 }
 
 function serializeImports(map = new Map()) {
@@ -58,12 +81,29 @@ export function deserializeRegistration(registration) {
 
   const name = requireString(registration.name, 'Component name');
   const hash = requireString(registration.hash, 'Component hash');
+  const agentFns = normalizeAgentFns(registration.agentFns);
   const imports = normalizeImports(registration.imports);
   const gates = normalizeGates(registration.gates);
   const data = normalizeNodes(registration.data, 'data');
   const tasks = normalizeNodes(registration.tasks, 'task');
 
-  return { name, hash, imports, gates, data, tasks };
+  return { name, hash, agentFns, imports, gates, data, tasks };
+}
+
+function normalizeAgentFns(agentFns = []) {
+  const list = agentFns ?? [];
+  assert(Array.isArray(list), 'agentFns must be an array');
+  return list.map((agentFnItem, idx) => {
+    assert(agentFnItem && typeof agentFnItem === 'object', `agentFns[${idx}] must be an object`);
+    const name = requireString(agentFnItem.name, `agentFns[${idx}].name`);
+    const portAddr = requireString(agentFnItem.portAddr, `agentFns[${idx}].portAddr`);
+    const codeRef = normalizeCodeRef(agentFnItem.codeRef);
+    const normalized = { name, portAddr, codeRef };
+    if (agentFnItem.hash !== undefined) {
+      normalized.hash = requireString(agentFnItem.hash, `agentFns[${idx}].hash`);
+    }
+    return normalized;
+  });
 }
 
 function normalizeImports(imports = []) {

@@ -3,11 +3,15 @@ export const s = {
   IDENTITY: {
     GROUP: Symbol('BACKEND_BRICKS_IDENTITY_GROUP'),
     COMPONENT: Symbol('BACKEND_BRICKS_IDENTITY_COMPONENT'),
+    AGENT_FN: Symbol('BACKEND_BRICKS_IDENTITY_AGENT_FN'),
     TASK: Symbol('BACKEND_BRICKS_IDENTITY_TASK'),
   }
 }
 export function isAComponent(group) {
   return group?.[s.IDENTITY.COMPONENT]
+}
+export function isAnAgentFn(value) {
+  return value?.[s.IDENTITY.AGENT_FN]
 }
 export function getCodeLocation(depth = 2) {
   const e = new Error();

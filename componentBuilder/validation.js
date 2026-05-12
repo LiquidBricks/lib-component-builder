@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { ERRORS } from "./errors.js";
-import { isAComponent, s } from "./help.js";
+import { isAComponent, isAnAgentFn, s } from "./help.js";
 
 const defaultDataDeps = ({ deferred: { deferred } }) => { }
 
@@ -51,6 +51,64 @@ export function checkGateDefinition(definition) {
   }
   assert(typeof fnc === 'function', ERRORS.fncMustBeFunction);
   return { hash: normalizedHash, inject, waitFor, deps, fnc };
+}
+
+export function checkAgentFnDefinition(definition) {
+  assert(definition && typeof definition === 'object', ERRORS.requiresOptionsObject);
+  const { portAddr, fn } = definition;
+  const normalizedPortAddr = normalizeAgentFnPortAddr(portAddr);
+  assert(typeof fn === 'function', ERRORS.fncMustBeFunction);
+  return { portAddr: normalizedPortAddr, fn };
+}
+
+export function checkComponentAgentFnDefinition(definition) {
+  assert(definition && typeof definition === 'object', ERRORS.requiresOptionsObject);
+  const { portAddr, hash } = definition;
+  const normalized = normalizeAgentFnSource(portAddr);
+  const normalizedHash = normalizeOptionalAgentFnHash(hash ?? normalized.hash);
+  return {
+    portAddr: normalized.portAddr,
+    hash: normalizedHash,
+  };
+}
+
+function normalizeAgentFnSource(value) {
+  if (typeof value === 'string') {
+    return { portAddr: normalizeAgentFnPortAddr(value) };
+  }
+
+  if (isAnAgentFn(value)) {
+    const internal = value?.[s.INTERNALS] ?? {};
+    return {
+      portAddr: normalizeAgentFnPortAddr(internal.portAddr),
+      hash: typeof internal.hash === 'function' ? internal.hash() : value.hash,
+    };
+  }
+
+  const candidate = value?.[s.INTERNALS] ?? value;
+  if (candidate && typeof candidate === 'object' && typeof candidate.fn === 'function') {
+    return {
+      portAddr: normalizeAgentFnPortAddr(candidate.portAddr),
+      hash: typeof candidate.hash === 'function' ? candidate.hash() : candidate.hash,
+    };
+  }
+
+  assert(false, 'agentFn portAddr must be a non-empty string or agentFn');
+}
+
+export function normalizeAgentFnPortAddr(portAddr) {
+  assert(typeof portAddr === 'string', 'agentFn portAddr must be a non-empty string');
+  const trimmed = portAddr.trim();
+  assert(trimmed !== '', 'agentFn portAddr must be a non-empty string');
+  return trimmed;
+}
+
+function normalizeOptionalAgentFnHash(hash) {
+  if (hash === undefined) return undefined;
+  assert(typeof hash === 'string', 'agentFn hash must be a non-empty string');
+  const trimmed = hash.trim();
+  assert(trimmed !== '', 'agentFn hash must be a non-empty string');
+  return trimmed;
 }
 
 function normalizeImportHashSource(hash) {

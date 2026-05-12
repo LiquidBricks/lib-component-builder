@@ -10,6 +10,14 @@ test('deserializeRegistration', async (t) => {
     const parsed = deserializeRegistration({
       name: ' my-comp ',
       hash: ' hash-123 ',
+      agentFns: [
+        {
+          name: ' runCommand ',
+          portAddr: ' cmd.run ',
+          hash: ' agent-fn-hash ',
+          codeRef,
+        },
+      ],
       imports: [
         {
           name: ' shared ',
@@ -51,6 +59,12 @@ test('deserializeRegistration', async (t) => {
 
     assert.equal(parsed.name, 'my-comp')
     assert.equal(parsed.hash, 'hash-123')
+    assert.deepEqual(parsed.agentFns[0], {
+      name: 'runCommand',
+      portAddr: 'cmd.run',
+      hash: 'agent-fn-hash',
+      codeRef,
+    })
     assert.deepEqual(parsed.imports[0], {
       name: 'shared',
       hash: 'import-hash',
@@ -75,6 +89,7 @@ test('deserializeRegistration', async (t) => {
 
   await t.test('applies defaults when optional sections are missing', () => {
     const parsed = deserializeRegistration({ name: 'simple', hash: 'h1' })
+    assert.deepEqual(parsed.agentFns, [])
     assert.deepEqual(parsed.imports, [])
     assert.deepEqual(parsed.gates, [])
     assert.deepEqual(parsed.data, [])

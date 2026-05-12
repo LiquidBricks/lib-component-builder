@@ -1,8 +1,10 @@
 import assert from "node:assert";
 import { getCodeLocation, s } from "./help.js";
 import { buildRegistration, deserializeRegistration } from "./registration.js";
-import { computeComponentHash } from "./hash.js";
+import { computeAgentFnHash, computeComponentHash } from "./hash.js";
 import { ERRORS } from "./errors.js";
+import { checkAgentFnDefinition } from "./validation.js";
+import { makeAgentFnRegistrar } from "./registrar/agentFn.js";
 import { makeDataRegistrar } from "./registrar/data.js";
 import { makeImportRegistrar } from "./registrar/import.js";
 import { makeGateRegistrar } from "./registrar/gate.js";
@@ -19,6 +21,7 @@ export function component(name = 'component') {
     [s.INTERNALS]: {
       name: componentName,
       nodes: {
+        agentFns: new Map(),
         data: new Map(),
         tasks: new Map(),
         imports: new Map(),
@@ -46,6 +49,7 @@ export function component(name = 'component') {
     },
   }
 
+  monad.agentFn = makeAgentFnRegistrar(monad);
   monad.data = makeDataRegistrar(monad);
   monad.task = makeTaskRegistrar(monad);
   monad.import = makeImportRegistrar(monad);
@@ -55,6 +59,46 @@ export function component(name = 'component') {
 
   monad[s.INTERNALS].init()
   return monad
+}
+
+export function agentFn(definition) {
+  const { portAddr, fn } = checkAgentFnDefinition(definition);
+  const debugInfo = (({
+    file, line, column, functionName
+  }) => ({ file, line, column, functionName }))(getCodeLocation(3));
+
+  const monad = {
+    [s.IDENTITY.AGENT_FN]: true,
+    [s.INTERNALS]: {
+      portAddr,
+      fn,
+      debugInfo,
+      hash() {
+        return computeAgentFnHash(portAddr, fn);
+      },
+      registration() {
+        return {
+          portAddr,
+          hash: monad[s.INTERNALS].hash(),
+          codeRef: debugInfo,
+        };
+      },
+    },
+    portAddr,
+    fn,
+    toJSON() {
+      return monad[s.INTERNALS].registration();
+    },
+  };
+
+  Object.defineProperty(monad, 'hash', {
+    enumerable: true,
+    get() {
+      return monad[s.INTERNALS].hash();
+    },
+  });
+
+  return monad;
 }
 
 component.fromJSON = deserializeRegistration;
