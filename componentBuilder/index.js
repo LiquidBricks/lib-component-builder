@@ -8,6 +8,7 @@ import { makeAgentFnRegistrar } from "./registrar/agentFn.js";
 import { makeDataRegistrar } from "./registrar/data.js";
 import { makeImportRegistrar } from "./registrar/import.js";
 import { makeGateRegistrar } from "./registrar/gate.js";
+import { makeRouterRegistrar } from "./registrar/router.js";
 import { makeTaskRegistrar } from "./registrar/task.js";
 import { makeExplain } from "./explain.js";
 
@@ -26,6 +27,7 @@ export function component(name = 'component') {
         tasks: new Map(),
         imports: new Map(),
         gates: new Map(),
+        routers: new Map(),
       },
       debugInfo: (({
         file, line, column, functionName
@@ -54,6 +56,7 @@ export function component(name = 'component') {
   monad.task = makeTaskRegistrar(monad);
   monad.import = makeImportRegistrar(monad);
   monad.gate = makeGateRegistrar(monad);
+  monad.router = makeRouterRegistrar(monad);
   monad.explain = makeExplain(monad);
   monad.toJSON = () => monad[s.INTERNALS].registration();
 

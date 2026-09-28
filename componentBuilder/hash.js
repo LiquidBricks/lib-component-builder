@@ -18,6 +18,11 @@ export function computeComponentHash(name, nodes = {}) {
   if (agentFns.length > 0) {
     descriptor.agentFns = agentFns;
   }
+  if (nodes.routers?.size) {
+    descriptor.routers = Array.from(nodes.routers, ([name, { routes }]) =>
+      ({ name, routes: normalizeGateDefinitions(routes) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
   const json = JSON.stringify(descriptor);
   return createHash('sha256').update(json).digest('hex');
 }

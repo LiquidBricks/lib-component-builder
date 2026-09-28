@@ -1,5 +1,6 @@
 import assert from "node:assert";
 import { normalizeImportHash } from "./validation.js";
+import { validateRouteInjection } from './router.js';
 
 export function buildRegistration({ name, nodes, hash }) {
   const agentFnNodes = serializeAgentFns(nodes.agentFns);
@@ -14,6 +15,10 @@ export function buildRegistration({ name, nodes, hash }) {
   };
   if (agentFnNodes.length > 0) {
     registration.agentFns = agentFnNodes;
+  }
+  if (nodes.routers?.size) {
+    registration.routers = Array.from(nodes.routers, ([name, { routes, codeRef }]) =>
+      ({ name, routes: serializeGates(routes), codeRef }));
   }
 
   return {
@@ -87,7 +92,26 @@ export function deserializeRegistration(registration) {
   const data = normalizeNodes(registration.data, 'data');
   const tasks = normalizeNodes(registration.tasks, 'task');
 
-  return { name, hash, agentFns, imports, gates, data, tasks };
+  const result = { name, hash, agentFns, imports, gates, data, tasks };
+  if (registration.routers !== undefined) {
+    assert(Array.isArray(registration.routers), 'routers must be an array');
+    const names = new Set();
+    result.routers = registration.routers.map(router => {
+      assert(router && typeof router === 'object', 'router must be an object');
+      const name = requireString(router.name, 'router name');
+      assert(!names.has(name), `duplicate router name: ${name}`);
+      names.add(name);
+      const routes = normalizeGates(router.routes);
+      const routeNames = new Set();
+      for (const route of routes) {
+        assert(!routeNames.has(route.name), `duplicate route name: ${route.name}`);
+        routeNames.add(route.name);
+        validateRouteInjection(route.name, route.inject);
+      }
+      return { name, routes, codeRef: normalizeCodeRef(router.codeRef) };
+    });
+  }
+  return result;
 }
 
 function normalizeAgentFns(agentFns = []) {
